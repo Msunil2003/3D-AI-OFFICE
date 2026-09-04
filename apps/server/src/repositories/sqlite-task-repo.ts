@@ -110,9 +110,9 @@ export class SqliteTaskRepository implements TaskRepository {
     const priority = updates.priority ?? existing.priority;
     const status = updates.status ?? existing.status;
     const blocked = updates.blocked !== undefined ? (updates.blocked ? 1 : 0) : (existing.blocked ? 1 : 0);
-    const blockedReason = updates.blockedReason !== undefined ? updates.blockedReason : existing.blockedReason;
-    const blockedBy = updates.blockedBy !== undefined ? updates.blockedBy : existing.blockedBy;
-    const blockedAt = updates.blockedAt !== undefined ? updates.blockedAt : existing.blockedAt;
+    const blockedReason = "blockedReason" in updates ? (updates.blockedReason ?? null) : existing.blockedReason;
+    const blockedBy = "blockedBy" in updates ? (updates.blockedBy ?? null) : existing.blockedBy;
+    const blockedAt = "blockedAt" in updates ? (updates.blockedAt ?? null) : existing.blockedAt;
     const assigneeId = updates.assigneeId !== undefined ? updates.assigneeId : existing.assigneeId;
     const workspaceId = updates.workspaceId !== undefined ? updates.workspaceId : existing.workspaceId;
     const branch = updates.branch !== undefined ? updates.branch : existing.branch;
