@@ -16,7 +16,8 @@
     "zod": "^3.24.1",
     "@office/shared": "*",
     "@office/runtime-core": "*",
-    "@office/runtime-opencode": "*"
+    "@office/runtime-opencode": "*",
+    "@office/git-worktree": "*"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

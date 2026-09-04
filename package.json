@@ -13,7 +13,8 @@
     "apps/office3d",
     "shared",
     "packages/runtime-core",
-    "packages/runtimes/opencode"
+    "packages/runtimes/opencode",
+    "packages/git-worktree"
   ],
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
