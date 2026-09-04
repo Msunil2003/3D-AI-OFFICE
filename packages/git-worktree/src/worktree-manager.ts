@@ -250,8 +250,18 @@ export class GitWorktreeManager {
   /**
    * Returns unified git diff.
    */
-  public async getDiff(worktreePath: string, options?: { staged?: boolean; baseCommit?: string }): Promise<string> {
+  public async getDiff(
+    worktreePath: string,
+    options?: { staged?: boolean; baseCommit?: string; includeUntracked?: boolean }
+  ): Promise<string> {
     const resolvedPath = path.resolve(worktreePath);
+    if (options?.includeUntracked) {
+      try {
+        await this.runGit(["add", "-N", "."], resolvedPath);
+      } catch {
+        // Non-fatal
+      }
+    }
     const args = ["diff"];
     if (options?.staged) args.push("--staged");
     if (options?.baseCommit) args.push(options.baseCommit);

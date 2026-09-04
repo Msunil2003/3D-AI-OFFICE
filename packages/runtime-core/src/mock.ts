@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import path from "path";
 import {
   AgentCapabilities,
   AgentRuntime,
@@ -26,6 +28,7 @@ export class MockRuntime implements AgentRuntime {
   readonly workingDirectory: string;
   readonly personality?: string;
 
+  private config: AgentRuntimeConfig;
   private status: AgentRuntimeStatus = "idle";
   private listeners = new Set<(event: NormalizedAgentEvent) => void>();
   private timers: NodeJS.Timeout[] = [];
@@ -34,6 +37,7 @@ export class MockRuntime implements AgentRuntime {
   private ptyBuffer = "";
 
   constructor(config: AgentRuntimeConfig) {
+    this.config = config;
     this.id = config.agentId;
     this.name = config.name;
     this.workingDirectory = config.workingDirectory;
@@ -117,7 +121,7 @@ export class MockRuntime implements AgentRuntime {
     this.appendPty(`\x1b[90m> ${text}\x1b[0m\r\n`);
 
     const timer = setTimeout(() => {
-      if (text.toLowerCase().includes("error")) {
+      if (this.config.extra?.failExecution || text.toLowerCase().includes("error")) {
         this.emit({
           kind: "agent.error",
           agentId: this.id,
@@ -130,7 +134,48 @@ export class MockRuntime implements AgentRuntime {
         return;
       }
 
-      if (text.toLowerCase().includes("diff") || text.toLowerCase().includes("code")) {
+      // If extra.files specified, write them to disk and emit tool calls
+      if (this.config.extra?.files && typeof this.config.extra.files === "object") {
+        for (const [relPath, content] of Object.entries(this.config.extra.files as Record<string, string>)) {
+          try {
+            const targetPath = path.join(this.workingDirectory, relPath);
+            const dir = path.dirname(targetPath);
+            if (!existsSync(dir)) {
+              mkdirSync(dir, { recursive: true });
+            }
+            writeFileSync(targetPath, content, "utf-8");
+            this.emit({
+              kind: "agent.tool_call",
+              agentId: this.id,
+              timestamp: new Date().toISOString(),
+              callId: `call-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              toolName: "edit_file",
+              input: { file: relPath, action: "create" }
+            });
+          } catch (err) {
+            console.warn(`[MockRuntime:${this.id}] Failed to write ${relPath}:`, err);
+          }
+        }
+      }
+
+      if (text.toLowerCase().includes("diff") || text.toLowerCase().includes("code") || this.config.extra?.writeToDisk) {
+        if (this.config.extra?.writeToDisk) {
+          try {
+            const targetPath = path.join(this.workingDirectory, "src", "feature.ts");
+            const dir = path.dirname(targetPath);
+            if (!existsSync(dir)) {
+              mkdirSync(dir, { recursive: true });
+            }
+            writeFileSync(
+              targetPath,
+              "export function mockFeature() {\n  return 'Hello from 3D AI Office';\n}\n",
+              "utf-8"
+            );
+          } catch (err) {
+            console.warn(`[MockRuntime:${this.id}] Failed to write src/feature.ts:`, err);
+          }
+        }
+
         // Simulate tool call + diff
         this.emit({
           kind: "agent.tool_call",
