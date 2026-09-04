@@ -1,0 +1,36 @@
+{
+  "name": "aioffice",
+  "version": "0.1.0",
+  "description": "A pixel-art virtual office where AI coding agents work at desks — watch Claude and Copilot build software in real-time.",
+  "private": true,
+  "bin": {
+    "officeagent": "./bin/officeagent.js"
+  },
+  "workspaces": [
+    "apps/web",
+    "apps/server",
+    "apps/officeagent",
+    "apps/office3d",
+    "shared",
+    "packages/runtime-core",
+    "packages/runtimes/opencode"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "dev": "npm run dev:server & npm run dev:web",
+    "dev:server": "npm --workspace apps/server run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:office3d": "npm --workspace apps/office3d run dev",
+    "build:server": "npm --workspace apps/server run build",
+    "build:web": "npm --workspace apps/web run build",
+    "build:office3d": "npm --workspace apps/office3d run build",
+    "test": "npx playwright test",
+    "agent": "npx tsx apps/officeagent/src/index.ts",
+    "start": "npx tsx apps/officeagent/src/index.ts start",
+    "demo": "npx tsx apps/officeagent/src/index.ts demo"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "playwright": "^1.58.2"
+  }
+}
