@@ -10,7 +10,21 @@ export interface AgentMessage {
 export interface AgentData {
   agentId: string;
   name: string;
-  status: "idle" | "working" | "blocked" | "finished" | "reviewed" | "available" | "thinking" | "replied" | "error";
+  status:
+    | "idle"
+    | "working"
+    | "blocked"
+    | "finished"
+    | "reviewed"
+    | "available"
+    | "thinking"
+    | "replied"
+    | "error"
+    | "TESTING"
+    | "collaborating"
+    | "meeting"
+    | "walking"
+    | string;
   summary: string;
   desk?: { x: number; y: number };
   position?: { x: number; y: number };

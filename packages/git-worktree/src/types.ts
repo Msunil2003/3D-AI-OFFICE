@@ -46,3 +46,11 @@ export class GitExecutionError extends Error {
     this.name = "GitExecutionError";
   }
 }
+
+export class GitMergeConflictError extends Error {
+  constructor(public readonly sourceBranch: string, public readonly targetBranch: string, public readonly details: string) {
+    super(`Merge conflict between '${sourceBranch}' and '${targetBranch}': ${details}`);
+    this.name = "GitMergeConflictError";
+  }
+}
+

@@ -2,7 +2,7 @@ import {
   AgentCapabilities,
   AgentRuntime,
   AgentRuntimeConfig
-} from "./types";
+} from "./types.js";
 
 export type RuntimeFactory = (config: AgentRuntimeConfig) => AgentRuntime | Promise<AgentRuntime>;
 

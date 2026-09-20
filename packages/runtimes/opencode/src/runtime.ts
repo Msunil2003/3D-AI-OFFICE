@@ -9,7 +9,7 @@ import {
   SendMessageOptions
 } from "@office/runtime-core";
 import type { OpencodeClient } from "@opencode-ai/sdk";
-import { defaultOpenCodeServerManager, OpenCodeServerManager } from "./server-manager";
+import { defaultOpenCodeServerManager, OpenCodeServerManager } from "./server-manager.js";
 
 export const OPENCODE_CAPABILITIES: AgentCapabilities = {
   supportsPty: false,
@@ -97,10 +97,11 @@ export class OpenCodeRuntime implements AgentRuntime {
 
   async start(options?: RuntimeStartOptions): Promise<void> {
     const serverInstance = await this.serverManager.getServer();
-    this.client = serverInstance.client;
+    const client = serverInstance.client;
+    this.client = client;
 
     // Create session in working directory
-    const createRes = await this.client.session.create({
+    const createRes = await client.session.create({
       body: {
         title: `${this.name} (${this.id})`
       },

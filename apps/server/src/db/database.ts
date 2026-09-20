@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync } from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 export class SqliteDatabase {
   public readonly db: DatabaseSync;
@@ -64,7 +65,11 @@ export function getDefaultDb(customPath?: string): SqliteDatabase {
     return new SqliteDatabase(customPath);
   }
   if (!defaultDbInstance) {
-    const rootDir = process.cwd();
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const rootDir = existsSync(path.join(process.cwd(), "data"))
+      ? process.cwd()
+      : path.resolve(__dirname, "../../../..");
     const dbPath = path.join(rootDir, "data", "aioffice.db");
     defaultDbInstance = new SqliteDatabase(dbPath);
   }

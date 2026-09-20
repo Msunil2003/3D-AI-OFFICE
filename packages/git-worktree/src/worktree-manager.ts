@@ -1,11 +1,12 @@
 import { execFile } from "child_process";
-import { existsSync, mkdirSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
 import * as path from "path";
 import { promisify } from "util";
 import {
   GitConflictInfo,
   GitDirtyWorktreeError,
   GitExecutionError,
+  GitMergeConflictError,
   GitSecurityError,
   GitStatusFile,
   GitStatusResult,
@@ -83,6 +84,22 @@ export class GitWorktreeManager {
       mkdirSync(parentDir, { recursive: true });
     }
 
+    // Ensure .aioffice is ignored in the git repository exclude file
+    try {
+      const gitDir = path.join(repoPath, ".git");
+      const infoDir = path.join(gitDir, "info");
+      const excludeFile = path.join(infoDir, "exclude");
+      if (!existsSync(infoDir)) {
+        mkdirSync(infoDir, { recursive: true });
+      }
+      const existingExclude = existsSync(excludeFile) ? readFileSync(excludeFile, "utf-8") : "";
+      if (!existingExclude.includes(".aioffice")) {
+        appendFileSync(excludeFile, "\n.aioffice/\n.aioffice\n");
+      }
+    } catch {
+      // Non-fatal
+    }
+
     // Check if branch already exists
     let branchExists = false;
     try {
@@ -92,9 +109,24 @@ export class GitWorktreeManager {
       branchExists = false;
     }
 
+    // Prune any stale/missing worktree registrations before adding
+    try {
+      await this.runGit(["worktree", "prune"], repoPath);
+    } catch {
+      // Non-fatal
+    }
+
     if (branchExists) {
-      // Check out existing branch into new worktree
-      await this.runGit(["worktree", "add", worktreePath, branch], repoPath);
+      // Check out existing branch into new worktree (use -f if worktree registration lingered)
+      try {
+        await this.runGit(["worktree", "add", worktreePath, branch], repoPath);
+      } catch (err: any) {
+        if (String(err).includes("already registered")) {
+          await this.runGit(["worktree", "add", "-f", worktreePath, branch], repoPath);
+        } else {
+          throw err;
+        }
+      }
     } else {
       // Create new branch at baseCommit (default HEAD) and check out into worktree
       const base = options.baseCommit || "HEAD";
@@ -226,6 +258,11 @@ export class GitWorktreeManager {
       const y = line[1];
       const filePath = line.slice(3).trim();
 
+      // Ignore internal worktree workspace metadata directory
+      if (filePath === ".aioffice" || filePath.startsWith(".aioffice/") || filePath.startsWith(".aioffice\\")) {
+        continue;
+      }
+
       if (x === "?" && y === "?") {
         files.push({ path: filePath, status: "?", staged: false });
       } else {
@@ -326,4 +363,57 @@ export class GitWorktreeManager {
       };
     }
   }
+
+  /**
+   * Merges a source branch into a target branch in the given repository.
+   */
+  public async mergeBranch(options: {
+    repoPath: string;
+    sourceBranch: string;
+    targetBranch: string;
+    message?: string;
+    fastForwardOnly?: boolean;
+  }): Promise<{ mergeCommit: string }> {
+    const repoPath = path.resolve(options.repoPath);
+    this.assertPathInProject(repoPath, repoPath);
+    const source = this.sanitizeBranchSlug(options.sourceBranch);
+    const target = this.sanitizeBranchSlug(options.targetBranch);
+
+    // 1. Verify working directory at repoPath is clean
+    const status = await this.getStatus(repoPath);
+    if (!status.clean) {
+      throw new GitDirtyWorktreeError(repoPath, status.files.map((f) => f.path));
+    }
+
+    // 2. Ensure repoPath is on targetBranch
+    const { stdout: currentBranch } = await this.runGit(["rev-parse", "--abbrev-ref", "HEAD"], repoPath);
+    if (currentBranch !== target) {
+      await this.runGit(["checkout", target], repoPath);
+    }
+
+    // 3. Perform merge
+    const message = options.message || `Merge branch '${source}' into '${target}'`;
+    const args = ["merge", source, "-m", message];
+    if (options.fastForwardOnly) {
+      args.push("--ff-only");
+    } else {
+      args.push("--no-ff");
+    }
+
+    try {
+      await this.runGit(args, repoPath);
+    } catch (err: any) {
+      try {
+        await this.runGit(["merge", "--abort"], repoPath);
+      } catch {
+        // Non-fatal if merge wasn't in conflict state
+      }
+      throw new GitMergeConflictError(source, target, err.stderr || err.message);
+    }
+
+    // 4. Get the new merge commit hash
+    const { stdout: mergeCommit } = await this.runGit(["rev-parse", "HEAD"], repoPath);
+    return { mergeCommit };
+  }
 }
+

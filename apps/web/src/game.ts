@@ -86,11 +86,11 @@ export class OfficeScene extends Phaser.Scene {
 
   create() {
     const map = this.make.tilemap({ key: "office" });
-    const floorTiles = map.addTilesetImage("floor-tile", "floor-tile");
-    const officeTiles = map.addTilesetImage("office-assets", "office-assets");
-    const floor = map.createLayer("Floor", floorTiles, 0, 0);
+    const floorTiles = map.addTilesetImage("floor-tile", "floor-tile")!;
+    const officeTiles = map.addTilesetImage("office-assets", "office-assets")!;
+    const floor = map.createLayer("Floor", floorTiles, 0, 0)!;
     const furniture = map.createLayer("Furniture", officeTiles, 0, 0);
-    const walls = map.createLayer("Walls", floorTiles, 0, 0);
+    const walls = map.createLayer("Walls", floorTiles, 0, 0)!;
     walls.setCollision([1]);
     floor.setAlpha(0);
     furniture?.setAlpha(0);
@@ -170,7 +170,7 @@ export class OfficeScene extends Phaser.Scene {
     player.setSize(10, 12);
     player.setOffset(3, 2);
     this.player = player;
-    this.physics.add.collider(player, walls);
+    this.physics.add.collider(player, walls!);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.wasdKeys = this.input.keyboard?.addKeys("W,A,S,D") as {
@@ -183,9 +183,9 @@ export class OfficeScene extends Phaser.Scene {
     this.cameras.main.setZoom(2);
     this.cameras.main.roundPixels = true;
 
-    floor.setDepth(0);
+    floor?.setDepth(0);
     furniture?.setDepth(1);
-    walls.setDepth(2);
+    walls?.setDepth(2);
     this.isReady = true;
     if (this.pendingAgents) {
       this.syncAgents(this.pendingAgents);

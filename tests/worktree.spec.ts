@@ -147,4 +147,25 @@ test.describe("Phase 2B: GitWorktreeManager", () => {
 
     expect(manager.sanitizeBranchSlug("ai/task-101/alice")).toBe("ai/task-101/alice");
   });
+
+  test("merges feature branch into target branch cleanly", async () => {
+    const branch = "ai/task-105/merge-test";
+    const { worktreePath } = await manager.createWorktree({
+      repoPath: testRepoDir,
+      branch
+    });
+
+    writeFileSync(path.join(worktreePath, "feature.txt"), "Merged feature content\n");
+    await manager.commit(worktreePath, "feat: mergeable feature");
+
+    const { mergeCommit } = await manager.mergeBranch({
+      repoPath: testRepoDir,
+      sourceBranch: branch,
+      targetBranch: "main"
+    });
+
+    expect(mergeCommit).toMatch(/^[a-f0-9]{40}$/);
+    expect(existsSync(path.join(testRepoDir, "feature.txt"))).toBe(true);
+  });
 });
+

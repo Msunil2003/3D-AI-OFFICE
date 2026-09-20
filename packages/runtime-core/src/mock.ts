@@ -9,7 +9,7 @@ import {
   RuntimeResetOptions,
   RuntimeStartOptions,
   SendMessageOptions
-} from "./types";
+} from "./types.js";
 
 export const MOCK_CAPABILITIES: AgentCapabilities = {
   supportsPty: true,

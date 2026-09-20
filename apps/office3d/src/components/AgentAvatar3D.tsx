@@ -27,7 +27,6 @@ export const AgentAvatar3D: React.FC<AgentAvatar3DProps> = ({
   onSelect
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const gemRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
   const statusColor = STATUS_COLOR_MAP[agent.status] || "#3b82f6";
@@ -37,16 +36,6 @@ export const AgentAvatar3D: React.FC<AgentAvatar3DProps> = ({
     if (groupRef.current) {
       // Subtle idle breathing motion
       groupRef.current.position.y = position[1] + Math.sin(t * 2 + position[0]) * 0.03;
-    }
-    if (gemRef.current) {
-      // Overhead status gem spin & hover
-      gemRef.current.rotation.y = t * 1.5;
-      if (agent.status === "thinking") {
-        const scale = 1 + Math.sin(t * 6) * 0.25;
-        gemRef.current.scale.set(scale, scale, scale);
-      } else {
-        gemRef.current.scale.set(1, 1, 1);
-      }
     }
   });
 
@@ -68,18 +57,6 @@ export const AgentAvatar3D: React.FC<AgentAvatar3DProps> = ({
         document.body.style.cursor = "auto";
       }}
     >
-      {/* Floating Status Gem / Indicator */}
-      <mesh ref={gemRef} position={[0, 1.7, 0.4]}>
-        <octahedronGeometry args={[0.16, 0]} />
-        <meshStandardMaterial
-          color={statusColor}
-          emissive={statusColor}
-          emissiveIntensity={isSelected || hovered ? 1.5 : 0.8}
-          roughness={0.2}
-          metalness={0.8}
-        />
-      </mesh>
-
       {/* Floating HTML Name Tag & Status Badge */}
       <Html position={[0, 2.05, 0.4]} center distanceFactor={14}>
         <div

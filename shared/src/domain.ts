@@ -369,7 +369,7 @@ export const AuditLogSchema = z.object({
   id: z.string().min(1),
   action: z.string().min(1),
   actorId: z.string().min(1),
-  entityType: z.enum(["TASK", "WORKSPACE", "PROJECT", "APPROVAL", "MERGE", "AGENT"]),
+  entityType: z.enum(["TASK", "WORKSPACE", "PROJECT", "APPROVAL", "MERGE", "AGENT", "MEETING"]),
   entityId: z.string().min(1),
   details: z.record(z.unknown()),
   idempotencyKey: z.string().optional(),
@@ -415,3 +415,33 @@ export const ArtifactSchema = z.object({
   createdAt: z.string()
 });
 export type Artifact = z.infer<typeof ArtifactSchema>;
+
+// ==========================================
+// 13. Structured Manager Planning Models
+// ==========================================
+
+export const DecomposedTaskPlanSchema = z.object({
+  tempId: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().default(""),
+  type: TaskTypeSchema.default("FEATURE"),
+  priority: TaskPrioritySchema.default("MEDIUM"),
+  requiredRole: AgentRoleSchema.default("FULLSTACK"),
+  requiredSkills: z.array(z.string()).default([]),
+  dependencies: z.array(z.string()).default([]),
+  estimatedComplexity: z.number().int().min(1).max(5).default(3),
+  riskLevel: z.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
+  acceptanceCriteria: z.array(z.string()).default([])
+});
+export type DecomposedTaskPlan = z.infer<typeof DecomposedTaskPlanSchema>;
+
+export const StructuredPlanSchema = z.object({
+  id: z.string().min(1),
+  projectId: z.string().min(1),
+  goal: z.string().min(1),
+  architecturalSummary: z.string().min(1),
+  tasks: z.array(DecomposedTaskPlanSchema).min(1),
+  risks: z.array(z.string()).default([]),
+  createdAt: z.string()
+});
+export type StructuredPlan = z.infer<typeof StructuredPlanSchema>;

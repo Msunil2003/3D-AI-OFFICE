@@ -27,10 +27,25 @@ import {
   NormalizedAgentEvent
 } from "@office/runtime-core";
 import { defaultRuntimeRegistry } from "./runtimes/index";
+import { createApiRouter } from "./api-router";
+import { getDefaultRepositories } from "./repositories/index";
+
+const repos = getDefaultRepositories();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+
+const apiRouter = createApiRouter();
+app.use("/api", apiRouter);
+app.get("/health", (req, res, next) => {
+  req.url = "/health";
+  apiRouter(req, res, next);
+});
+app.get("/ready", (req, res, next) => {
+  req.url = "/ready";
+  apiRouter(req, res, next);
+});
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const dataDir = path.join(rootDir, "data");
@@ -117,6 +132,47 @@ function upsertAgent(agentId: string, update: Partial<AgentRecord>) {
     agents.push({ agentId, messages: [], ...update });
   }
   persistAgents();
+
+  // Sync with SQLite domain repository
+  try {
+    const full = agents.find((a) => a.agentId === agentId);
+    if (full) {
+      const dbAgent = repos.agents.findById(agentId);
+      const now = new Date().toISOString();
+      if (!dbAgent) {
+        repos.agents.create({
+          id: agentId,
+          name: full.name || agentId,
+          role: "FULLSTACK",
+          department: "Engineering",
+          skills: { typescript: 5, node: 5, git: 5 },
+          status: (full.status || "available") as any,
+          summary: full.summary || "Ready",
+          desk: full.desk || { x: 0, y: 0 },
+          provider: full.provider || full.cliType || "opencode",
+          workingDirectory: full.workingDirectory || "",
+          lastSeen: full.lastSeen || now
+        });
+      } else {
+        repos.agents.update(agentId, {
+          name: full.name,
+          status: full.status as any,
+          summary: full.summary,
+          desk: full.desk,
+          provider: full.provider || full.cliType,
+          workingDirectory: full.workingDirectory,
+          lastSeen: full.lastSeen || now
+        });
+      }
+    }
+  } catch (err) {
+    console.warn(`[upsertAgent] SQLite agent sync notice:`, err);
+  }
+}
+
+// Sync initial agents to SQLite domain repository
+for (const a of agents) {
+  upsertAgent(a.agentId, {});
 }
 
 function applyEvent(event: EventEnvelope) {
@@ -322,6 +378,9 @@ app.delete("/agents/:agentId", async (req, res) => {
   if (index !== -1) {
     agents.splice(index, 1);
     persistAgents();
+    try {
+      repos.agents.delete(agentId);
+    } catch {}
   }
 
   // Stop runtime via registry

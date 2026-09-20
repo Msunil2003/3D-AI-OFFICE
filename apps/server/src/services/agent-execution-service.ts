@@ -1,7 +1,8 @@
 import { randomUUID, createHash } from "crypto";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import * as path from "path";
 import {
   Task,
   Workspace,
@@ -203,6 +204,18 @@ export class AgentExecutionService {
         `Task: ${currentTask.title}\nDescription: ${currentTask.description || "No description"}\nBranch: ${workspace.branch}`;
 
       await runtime.sendMessage(prompt, { channel: "task" });
+
+      // If explicit filesToGenerate provided, write them to isolated worktree disk
+      if (options?.filesToGenerate && (options?.writeToDisk ?? true)) {
+        for (const [relPath, content] of Object.entries(options.filesToGenerate)) {
+          const fullPath = path.join(workspace.path, relPath);
+          const dir = path.dirname(fullPath);
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          writeFileSync(fullPath, content, "utf-8");
+        }
+      }
 
       // Give runtime processing time (for mock / headless)
       await new Promise((resolve) => setTimeout(resolve, 600));

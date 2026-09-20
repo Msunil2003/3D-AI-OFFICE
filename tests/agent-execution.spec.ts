@@ -210,7 +210,7 @@ test.describe("Phase 2D: Real Agent Execution & Isolated Worktree Integration", 
     });
 
     // 3. Create a passing test script in the worktree
-    const testScript = path.join(workspace.path, "run-test.js");
+    const testScript = path.join(workspace.path, "run-test.cjs");
     writeFileSync(
       testScript,
       `const fs = require('fs');

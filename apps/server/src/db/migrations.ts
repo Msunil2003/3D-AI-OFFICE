@@ -1,10 +1,19 @@
 import { existsSync, readFileSync } from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { SqliteDatabase } from "./database";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export function runMigrations(db: SqliteDatabase): { migratedAgents: number; migratedTasks: number } {
-  const rootDir = process.cwd();
-  const schemaPath = path.join(rootDir, "apps", "server", "src", "db", "schema.sql");
+  let schemaPath = path.join(__dirname, "schema.sql");
+  if (!existsSync(schemaPath)) {
+    schemaPath = path.join(process.cwd(), "apps", "server", "src", "db", "schema.sql");
+  }
+  if (!existsSync(schemaPath)) {
+    schemaPath = path.join(process.cwd(), "src", "db", "schema.sql");
+  }
 
   if (existsSync(schemaPath)) {
     const schemaSql = readFileSync(schemaPath, "utf-8");
@@ -17,6 +26,9 @@ export function runMigrations(db: SqliteDatabase): { migratedAgents: number; mig
   let migratedTasks = 0;
 
   // Check for legacy data files
+  const rootDir = existsSync(path.join(process.cwd(), "data"))
+    ? process.cwd()
+    : path.resolve(__dirname, "../../../..");
   const dataDir = path.join(rootDir, "data");
   const agentsPath = path.join(dataDir, "agents.json");
   const tasksPath = path.join(dataDir, "tasks.json");

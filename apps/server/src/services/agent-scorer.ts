@@ -46,10 +46,11 @@ export class AgentCandidateScorer {
         let matchedCount = 0;
         let proficiencySum = 0;
 
-        for (const [skill, level] of Object.entries(agent.skills)) {
+        for (const [skill, rawLevel] of Object.entries(agent.skills)) {
+          const level = rawLevel > 5 ? Math.min(100, rawLevel) : Math.min(100, rawLevel * 20);
           if (text.includes(skill.toLowerCase())) {
             matchedCount++;
-            proficiencySum += level * 20; // 1-5 scale -> 20-100
+            proficiencySum += level;
           }
         }
 
@@ -58,8 +59,9 @@ export class AgentCandidateScorer {
         } else {
           // Average proficiency of all skills as fallback
           const allSkills = Object.values(agent.skills);
-          const avg = allSkills.reduce((sum, v) => sum + v, 0) / allSkills.length;
-          skillScore = Math.round(avg * 18);
+          const normalized = allSkills.map((v) => (v > 5 ? Math.min(100, v) : Math.min(100, v * 20)));
+          const avg = normalized.reduce((sum, v) => sum + v, 0) / normalized.length;
+          skillScore = Math.min(100, Math.round(avg));
         }
       }
 

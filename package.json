@@ -2,6 +2,7 @@
   "name": "aioffice",
   "version": "0.1.0",
   "description": "A pixel-art virtual office where AI coding agents work at desks — watch Claude and Copilot build software in real-time.",
+  "type": "module",
   "private": true,
   "bin": {
     "officeagent": "./bin/officeagent.js"
